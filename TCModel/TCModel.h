@@ -1,7 +1,7 @@
 //
 //  TCModel.h
 //
-//  Created by 程天聪 on 15/12/21.
+//  Created by ctc on 15/12/21.
 //  Copyright © 2015年 CTC. All rights reserved.
 //
 
@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 
 @interface TCModel : NSObject <NSCoding>
+
 /**
  *  TCModel使用注意事项:
  *
@@ -19,43 +20,39 @@
  *
  *  @return 数据模型
  */
-+ (instancetype)modelWithDictionary:(NSDictionary *)dictionary;
++ (nonnull instancetype)modelWithDictionary:(nonnull NSDictionary *)dictionary;
 
 /** 将json字符串转为model */
-+ (instancetype)modelWithJsonString:(NSString *)jsonString;
-
-/** 返回属性都是空字符串的模型 */
-+ (instancetype)emptyModel;
++ (nonnull instancetype)modelWithJson:(nonnull NSString *)json;
 
 /** 返回所有属性名 */
-+ (NSArray *)allProperties;
++ (nonnull NSArray *)propertyNames;
 
-/** 返回属性类型 */
-+ (NSDictionary *)allAttributes;
+/** 返回属性与属性类型 */
++ (nonnull NSDictionary <NSString *,id>*)attributes;
 
 /** 归档 */
-+ (NSData *)archive:(TCModel *)model;
-
++ (nonnull NSData *)archive:(nonnull TCModel *)model;
+/** 归档 */
+- (nonnull NSData *)archive;
 /** 读档 */
-+ (instancetype)unarchiveWithData:(NSData *)data;
++ (nullable instancetype)unarchiveWithData:(nonnull NSData *)data;
 
 /** 归档于UserDefaults */
-+ (void)archive:(TCModel *)model toUserDefaultsWithKey:(NSString *)key;
-
++ (void)archive:(nonnull TCModel *)model userDefaultsKey:(nonnull NSString *)key;
+/** 归档于UserDefaults */
+- (void)archiveWithUserDefaultsKey:(nonnull NSString *)key;
 /** 读档于UserDefaults */
-+ (instancetype)unarchiveModelFromUserDefaultsWithKey:(NSString *)key;
-
++ (nullable instancetype)unarchiveWithUserDefaultsKey:(nonnull NSString *)key;
+/** json转字典 */
++ (nullable NSDictionary *)dictionaryWithJson:(nullable NSString *)json NS_SWIFT_NAME(dictionary(_:));
+/** 字典转json */
++ (nullable NSString *)jsonWithDictionary:(nullable NSDictionary *)dictionary NS_SWIFT_NAME(json(_:));
 /**
  *  属性类型为数组 数组中的元素是TCModel类 需要重写此方法
  *  @example {@"属性名1":[A_TCModel class], @"属性名2":[B_TCModel class]}
  *  @return 标识属性数组中元素类型的字典
  */
-+ (NSDictionary *)objectClassInArray;
++ (nonnull NSDictionary <NSString *,Class>*)objectClassInArray;
 
 @end
-
-/**
- *
- 现有问题:只能对简单结构的model归档读档
- *
- */

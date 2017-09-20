@@ -1,7 +1,7 @@
- //
+//
 //  TCModel.m
 //
-//  Created by 程天聪 on 15/12/21.
+//  Created by ctc on 15/12/21.
 //  Copyright © 2015年 CTC. All rights reserved.
 //
 
@@ -10,39 +10,59 @@
 
 @implementation TCModel
 
-/**
- *  TCModel使用注意事项:
- *
- *  若模型属性名和字典键不同时
- *  重写"- (void)setValue:(id)value forUndefinedKey:(NSString *)key"方法.
- *
- *  @param dictionary 数据字典
- *
- *  @return 数据模型
- */
+- (instancetype)init {
+    if (self = [super init]) {
+        [self initData];
+    }
+    return self;
+}
+
 + (instancetype)modelWithDictionary:(NSDictionary *)dictionary {
     TCModel *model = [self new];
-    [model setValuesForKeysWithDictionary:dictionary];
+    if ([dictionary isKindOfClass:[NSDictionary class]]) {
+        [model setValuesForKeysWithDictionary:dictionary];
+    }
     return model;
 }
 
 /** 将json字符串转为model */
-+ (instancetype)modelWithJsonString:(NSString *)jsonString {
-    NSDictionary *dictioanry = [self dictionaryWithJsonString:jsonString];
-    return [self modelWithDictionary:dictioanry];
++ (instancetype)modelWithJson:(NSString *)json {
+    id dictionary = [self dictionaryWithJson:json];
+    if ([dictionary isKindOfClass:[NSDictionary class]]) {
+        return [self modelWithDictionary:dictionary];
+    } else {
+        return [self new];
+    }
+}
+
+
+/** 所有属性初始化 */
+- (void)initData {
+    for (NSString *key in self.class.propertyNames) {
+        NSString *type = self.class.attributes[key];
+        if ([NSClassFromString(type) isSubclassOfClass:[NSDictionary class]]) {
+            [self setValue:[NSDictionary dictionary] forKey:key];
+        } else if ([NSClassFromString(type) isSubclassOfClass:[NSArray class]]) {
+            [self setValue:[NSArray array] forKey:key];
+        } else {
+            [self setValue:nil forKey:key];
+        }
+    }
 }
 
 /** json转字典 */
-+ (NSDictionary *)dictionaryWithJsonString:(NSString *)jsonString {
-    NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
++ (NSDictionary *)dictionaryWithJson:(NSString *)json {
+    NSData *jsonData = [json dataUsingEncoding:NSUTF8StringEncoding];
+    if (!jsonData) return nil;
     NSError *err;
-    NSDictionary *dictionary = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&err];
+    NSDictionary *dictionary = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingAllowFragments error:&err];
     if (err) return nil;
     return dictionary;
 }
 
 /** 字典转json */
-+ (NSString *)jsonStringWithDictionary:(NSDictionary *)dictionary {
++ (NSString *)jsonWithDictionary:(NSDictionary *)dictionary {
+    if (!dictionary) return nil;
     NSError *err = nil;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dictionary options:NSJSONWritingPrettyPrinted error:&err];
     if (err) return nil;
@@ -50,91 +70,57 @@
 }
 
 - (void)setValue:(id)value forKey:(NSString *)key {
-    
-    if ([[self.class allProperties] containsObject:key]) {
-        // value总共5种情况（空 字典 数组 字符串 基本数据类型）
-        if (value==nil || [value isEqual:[NSNull null]]||[value isKindOfClass:[NSNull class]]) {
-            // 1.空
-            value = @"";
-        } else if ([value isKindOfClass:[NSArray class]]) {
-            // 2.数组
-            NSDictionary *objectClassInArrayDictionary = [self.class objectClassInArray];
-            if (objectClassInArrayDictionary) {
-                NSMutableArray *array = [NSMutableArray array];
-                for (NSString *objectClassInArrayKey in objectClassInArrayDictionary.allKeys) {
-                    if ([key isEqualToString:objectClassInArrayKey]) {
-                        for (NSDictionary *dic in value) {
-                            [array addObject:[[objectClassInArrayDictionary valueForKey:key] modelWithDictionary:dic]];
-                        }
-                    }
-                }
-                value = array;
-            }
-        } else if ([value isKindOfClass:[NSDictionary class]]) {
-            // 3.字典
-            NSDictionary *attDic = [self.class allAttributes];
-            NSString *att = [attDic objectForKey:key];
-// 当属性是字典时候 此处判断不做好的处理 容易崩溃
-            if (att.length != 0) {
-                Class aClass = NSClassFromString(att);
-                if (![aClass isKindOfClass:[NSDictionary class]]) {
-                    value = [NSClassFromString(att) modelWithDictionary:value];
-                }
-            }
-        } else if ([value isKindOfClass:[NSString class]]) {
-            // 4.字符串 （json字符串 字符串 基本数据类型）
-            
-            // (1)json字符串
-//            NSDictionary *jsonDic = [self.class dictionaryWithJsonString:value];
-//            if (jsonDic) {
-//                // 可以转为字典的json字符串
-//                [self setValue:jsonDic forKey:key];
-//                return;
-//            }
-            // (2)普通字符串
-            if ([value isEqualToString:@"<null>"] || [value isEqualToString:@"(null)"] || [value isEqualToString:@"（null）"]) {
-                // 错误格式的字符串 系统没识别为null和nil
-                value = @"";
-            } else {
-                NSString *type = [[self.class allAttributes] objectForKey:key];
-                if (![type isEqualToString:@"NSString"]) {
-                    if ([type isEqualToString:@"BOOL"]) {
-                        [super setValue:@([value boolValue]) forKey:key];
-                        return;
-                    } else if ([type isEqualToString:@"NSInteger"]) {
-                        [super setValue:@([value integerValue]) forKey:key];
-                        return;
-                    } else if ([type isEqualToString:@"CGFloat"]) {
-                        [super setValue:@([value doubleValue]) forKey:key];
-                        return;
-                    } else if ([type isEqualToString:@"float"]) {
-                        [super setValue:@([value floatValue]) forKey:key];
-                        return;
-                    } else if ([type isEqualToString:@"int"]) {
-                        [super setValue:@([value intValue]) forKey:key];
-                        return;
-                    }
-                }
-            }
-        }
-
+    if ([self isEmptyWithValue:value]) {
+        value = @"";
+    } else if ([value isKindOfClass:[NSArray class]]) {
+        value = [self handleArrayWithKey:key value:value];
+    } else if ([value isKindOfClass:[NSDictionary class]]) {
+        value = [self handleDictionaryWithKey:key value:value];
     }
     [super setValue:value forKey:key];
 }
 
-+ (NSDictionary *)objectClassInArray {
+/// 判断传入的值是否为空
+- (BOOL)isEmptyWithValue:(id)value {
+    if (value==nil || [value isEqual:[NSNull null]] || [value isKindOfClass:[NSNull class]]) {
+        return YES;
+    } else if ([value isKindOfClass:[NSString class]] && ([value isEqualToString:@"<null>"] || [value isEqualToString:@"(null)"] || [value isEqualToString:@"（null）"])) {
+        return YES;
+    }
+    return NO;
+}
+
+/// 填充数组的处理
+- (id)handleArrayWithKey:(NSString *)key value:(id)value {
+    if (self.class.objectClassInArray) {
+        NSMutableArray *array = [NSMutableArray array];
+        for (NSString *objectClassInArrayKey in self.class.objectClassInArray.allKeys) {
+            if ([key isEqualToString:objectClassInArrayKey]) {
+                for (NSDictionary *dic in value) {
+                    [array addObject:[[self.class.objectClassInArray valueForKey:key] modelWithDictionary:dic]];
+                }
+                return [array copy];
+            }
+        }
+    }
+    return value;
+}
+
+/// 填充字典的处理
+- (id)handleDictionaryWithKey:(NSString *)key value:(id)value {
+    NSString *type = [self.class.attributes objectForKey:key];
+    Class aClass = NSClassFromString(type);
+    if (![aClass isSubclassOfClass:[NSDictionary class]]) {
+        value = [aClass modelWithDictionary:value];
+    }
+    return value;
+}
+
++ (NSDictionary <NSString *,Class>*) objectClassInArray {
     return nil;
 }
 
-+ (instancetype)emptyModel {
-    TCModel *model = [self new];
-    for (NSString *keyPath in [self allProperties]) {
-        [model setValue:@"" forKeyPath:keyPath];
-    }
-    return model;
-}
-
-+ (NSArray *)allProperties {
++ (NSArray *)propertyNames {
     u_int count;
     objc_property_t *properties  = class_copyPropertyList(self, &count);
     NSMutableArray *propertiesArray = [NSMutableArray arrayWithCapacity:count];
@@ -146,8 +132,7 @@
     return propertiesArray;
 }
 
-/** 得到所有非基本数据类型属性类型 */
-+ (NSDictionary *)allAttributes {
++ (NSDictionary *)attributes {
     u_int count;
     objc_property_t *properties  = class_copyPropertyList(self, &count);
     NSMutableArray *propertiesArray = [NSMutableArray arrayWithCapacity:count];
@@ -187,6 +172,7 @@
     return nil;
 }
 /*
+ 32  64
  NSInteger	i	q
  CGFloat	f	d
  int		i	i
@@ -201,46 +187,60 @@
 + (NSData *)archive:(TCModel *)model {
     return [NSKeyedArchiver archivedDataWithRootObject:model];
 }
+- (NSData *)archive {
+    return [NSKeyedArchiver archivedDataWithRootObject:self];
+}
 + (instancetype)unarchiveWithData:(NSData *)data {
     return [NSKeyedUnarchiver unarchiveObjectWithData:data];
 }
-+ (instancetype)unarchiveModelFromUserDefaultsWithKey:(NSString *)key {
++ (instancetype)unarchiveWithUserDefaultsKey:(NSString *)key {
     return [self unarchiveWithData:[[NSUserDefaults standardUserDefaults]objectForKey:key]];
 }
-+ (void)archive:(TCModel *)model toUserDefaultsWithKey:(NSString *)key{
++ (void)archive:(TCModel *)model userDefaultsKey:(NSString *)key{
     [[NSUserDefaults standardUserDefaults] setObject:[self archive:model] forKey:key];
+}
+- (void)archiveWithUserDefaultsKey:(NSString *)key {
+    [[NSUserDefaults standardUserDefaults] setObject:[self archive] forKey:key];
 }
 
 - (id)initWithCoder:(NSCoder *)aDecoder {
     if (self = [super init]) {
-        for (NSString *keyPath in [self.class allProperties]) {
-                [self setValue:[aDecoder decodeObjectForKey:keyPath] forKey:keyPath];
+        for (NSString *keyPath in self.class.propertyNames) {
+            [self setValue:[aDecoder decodeObjectForKey:keyPath] forKey:keyPath];
         }
     }
     return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)aCoder {
-    for (NSString *keyPath in [self.class allProperties]) {
+    for (NSString *keyPath in self.class.propertyNames) {
         [aCoder encodeObject:[self valueForKey:keyPath] forKey:keyPath];
     }
 }
 
 - (void)setValue:(id)value forUndefinedKey:(NSString *)key {
-//    NSLog(@"key\"%@\"没有找到%@中的属性",key,self.class);
+    NSLog(@"json中字段\"%@\"没有填充到%@中",key,self.class);
 }
 
 // 重写描述,解决一般情况下自定义model类无法直观展示.
 - (NSString *)description {
-    NSArray *properties = [self.class allProperties];
     NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-    for (NSString *key in properties) {
-        NSString *let = [key mutableCopy];
-        id value = [self valueForKey:let];
-        dictionary[let] = value;
-//        NSLog(@"let:%@",let);
+    for (NSString *key in self.class.propertyNames) {
+        id value = [self valueForKey:key];
+        if ([value isKindOfClass:[TCModel class]]) {
+            value = [value description];
+        } else if ([value isKindOfClass:[NSArray class]]) {
+            if ([[self.class objectClassInArray] valueForKey:key]) {
+                NSMutableArray *array = [value mutableCopy];
+                for (int i=0; i<[value count]; i++) {
+                    array[i] = [value[i] description];
+                }
+                value = [array copy];
+            }
+        }
+        dictionary[key] = value;
     }
-    return [TCModel jsonStringWithDictionary:dictionary];
+    return [TCModel jsonWithDictionary:dictionary];
 }
 
 @end
