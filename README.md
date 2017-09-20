@@ -6,7 +6,8 @@ A class to handle json and model.
 pod 'TCModel'
 ```
 ```
-#import <TCModel/TCModel.h>
+oc:#import <TCModel/TCModel.h>
+swift:import TCModel
 ```
 ### 2.手动拖入TCCategory文件夹
 ```
