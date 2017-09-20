@@ -20,10 +20,10 @@
  *
  *  @return 数据模型
  */
-+ (nonnull instancetype)modelWithDictionary:(nonnull NSDictionary *)dictionary;
++ (nonnull instancetype)modelWithDictionary:(nullable NSDictionary *)dictionary;
 
 /** 将json字符串转为model */
-+ (nonnull instancetype)modelWithJson:(nonnull NSString *)json;
++ (nonnull instancetype)modelWithJson:(nullable NSString *)json;
 
 /** 返回所有属性名 */
 + (nonnull NSArray *)propertyNames;

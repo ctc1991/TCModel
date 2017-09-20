@@ -19,7 +19,7 @@
 
 + (instancetype)modelWithDictionary:(NSDictionary *)dictionary {
     TCModel *model = [self new];
-    if ([dictionary isKindOfClass:[NSDictionary class]]) {
+    if (dictionary && [dictionary isKindOfClass:[NSDictionary class]]) {
         [model setValuesForKeysWithDictionary:dictionary];
     }
     return model;
@@ -28,13 +28,8 @@
 /** 将json字符串转为model */
 + (instancetype)modelWithJson:(NSString *)json {
     id dictionary = [self dictionaryWithJson:json];
-    if ([dictionary isKindOfClass:[NSDictionary class]]) {
-        return [self modelWithDictionary:dictionary];
-    } else {
-        return [self new];
-    }
+    return [self modelWithDictionary:dictionary];
 }
-
 
 /** 所有属性初始化 */
 - (void)initData {
