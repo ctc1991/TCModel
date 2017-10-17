@@ -214,7 +214,7 @@
 }
 
 - (void)setValue:(id)value forUndefinedKey:(NSString *)key {
-    NSLog(@"json中字段\"%@\"没有填充到%@中",key,self.class);
+//    NSLog(@"json中字段\"%@\"没有填充到%@中",key,self.class);
 }
 
 // 重写描述,解决一般情况下自定义model类无法直观展示.

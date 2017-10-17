@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "TCModel"
-  s.version      = "2.0.2"
+  s.version      = "2.0.4"
   s.summary      = "ctc's model."
   s.description  = <<-DESC
   A class to handle json and model.
